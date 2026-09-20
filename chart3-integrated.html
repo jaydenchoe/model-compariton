@@ -84,17 +84,20 @@ function select(){
  S.sort((a,b)=>a.x-b.x||a.y-b.y);
  for(let i=0;i+1<S.length;){ if(S[i+1].y-S[i].y===1)S.splice(i+1,1); else i++; }
  for(let i=0;i+1<S.length;i++){const a=S[i],b=S[i+1]; if((b.x-a.x)/(b.y-a.y)>CAP)S.splice(i+1,1);}
- if(STATE.local!=null)S=S.filter(p=>p.y>STATE.local+RAD);
+ // competence floor 34 (마지노선, docs/decisions.md) — checked local raises it
+ S=S.filter(p=>p.y>(STATE.local==null?34:STATE.local)+RAD);
  if(!S.length)return loc;
  const top=S[S.length-1], bulk=S[0].x<=BULKMAX?S[0]:null;
- if(S.length===1)return loc.concat([{p:S[0],role:'Workhorse'}]);
- if(bulk&&S.length>2){
+ let tiers;
+ if(S.length===1)tiers=[{p:S[0],role:'Workhorse'}];
+ else if(bulk&&S.length>2){
   let best=null;
   S.slice(1,-1).forEach(p=>{const g=Math.min(p.y-bulk.y,top.y-p.y);
    if(!best||g>best.g||(g===best.g&&p.y>best.p.y))best={p,g};});
-  return loc.concat([{p:bulk,role:'Bulk'},{p:best.p,role:'Workhorse'},{p:top,role:'Top'}]);
- }
- return loc.concat([{p:bulk||S[0],role:'Workhorse'},{p:top,role:'Top'}]);
+  tiers=[{p:bulk,role:'Bulk'},{p:best.p,role:'Workhorse'},{p:top,role:'Top'}];
+ } else tiers=[{p:bulk||S[0],role:'Workhorse'},{p:top,role:'Top'}];
+ if(loc.length&&tiers[0].role==='Bulk')tiers.shift(); // local covers the bulk role
+ return loc.concat(tiers);
 }
 function nameOf(p){ return p.s==='GLM'?'GLM-'+p.l:(p.l?p.s+' '+p.l:p.s); }
 
