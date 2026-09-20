@@ -77,24 +77,26 @@ function select(){
  for(const k of ['openai','anthropic','zai']) if(STATE.on[k])
   DATA[k].series.forEach(s=>{ if(s.excl&&!STATE.on.fable)return;
    s.pts.forEach(p=>P.push({x:p[0],y:p[1],l:p[2],s:s.n}));});
- if(!P.length)return[];
+ const loc=STATE.local!=null?[{p:{x:0.008,y:STATE.local,l:STATE.local===34?'xhigh':'',
+   s:STATE.local===34?'Qwen3.8 27B':'Qwen3.8-Flash-Next'},role:'Local'}]:[];
+ if(!P.length)return loc;
  let S=P.filter(a=>!P.some(b=>b!==a&&b.y>=a.y&&b.x<=a.x&&(b.y>a.y||b.x<a.x)));
  S.sort((a,b)=>a.x-b.x||a.y-b.y);
  for(let i=0;i+1<S.length;){ if(S[i+1].y-S[i].y===1)S.splice(i+1,1); else i++; }
  for(let i=0;i+1<S.length;i++){const a=S[i],b=S[i+1]; if((b.x-a.x)/(b.y-a.y)>CAP)S.splice(i+1,1);}
  if(STATE.local!=null)S=S.filter(p=>p.y>STATE.local+RAD);
- if(!S.length)return[];
+ if(!S.length)return loc;
  const top=S[S.length-1], bulk=S[0].x<=BULKMAX?S[0]:null;
- if(S.length===1)return[{p:S[0],role:'Workhorse'}];
+ if(S.length===1)return loc.concat([{p:S[0],role:'Workhorse'}]);
  if(bulk&&S.length>2){
   let best=null;
   S.slice(1,-1).forEach(p=>{const g=Math.min(p.y-bulk.y,top.y-p.y);
    if(!best||g>best.g||(g===best.g&&p.y>best.p.y))best={p,g};});
-  return[{p:bulk,role:'Bulk'},{p:best.p,role:'Workhorse'},{p:top,role:'Top'}];
+  return loc.concat([{p:bulk,role:'Bulk'},{p:best.p,role:'Workhorse'},{p:top,role:'Top'}]);
  }
- return[{p:bulk||S[0],role:'Workhorse'},{p:top,role:'Top'}];
+ return loc.concat([{p:bulk||S[0],role:'Workhorse'},{p:top,role:'Top'}]);
 }
-function nameOf(p){ return p.s==='GLM'?'GLM-'+p.l:(p.l===p.s?p.s:p.s+' '+p.l); }
+function nameOf(p){ return p.s==='GLM'?'GLM-'+p.l:(p.l?p.s+' '+p.l:p.s); }
 
 function build(){
  STATE.tiers=select();
@@ -114,7 +116,7 @@ function build(){
  chart.data.datasets=ds;
  chart.update('none');
  document.getElementById('sum').innerHTML = T.length
-  ? 'Picks — '+T.map(t=>t.role+': <b>'+nameOf(t.p)+'</b> · '+t.p.y+' pts · $'+t.p.x.toFixed(2)).join(' &nbsp;·&nbsp; ')
+  ? 'Picks — '+T.map(t=>t.role+': <b>'+nameOf(t.p)+'</b> · '+t.p.y+' pts · '+(t.role==='Local'?'$0':'$'+t.p.x.toFixed(2))).join(' &nbsp;·&nbsp; ')
   : 'No pickable tier — select at least one vendor.';
 }
 
@@ -136,7 +138,7 @@ const lab={id:'lab',afterDatasetsDraw(c){const x=c.ctx,sx=c.scales.x,sy=c.scales
   x.strokeStyle=FG;x.lineWidth=2.5;x.beginPath();x.arc(px,py,15,0,6.29);x.stroke();
   x.textAlign='center';x.fillStyle=FG;x.font='600 11.5px sans-serif';x.fillText(t.role,px,py-26);});
  x.font='500 9.5px sans-serif';x.fillStyle=SLT;x.textAlign='center';
- for(let i=0;i+1<T.length;i++){const p1=T[i].p,p2=T[i+1].p;
+ for(let i=0;i+1<T.length;i++){ if(T[i].role==='Local')continue; const p1=T[i].p,p2=T[i+1].p;
   const px=(sx.getPixelForValue(p1.x)+sx.getPixelForValue(p2.x))/2,
         py=(sy.getPixelForValue(p1.y)+sy.getPixelForValue(p2.y))/2;
   x.fillText('+'+(p2.y-p1.y)+' pts · '+(p2.x/p1.x).toFixed(1)+'x',px,py);}
