@@ -14,7 +14,14 @@
   .sub { font-size:12px; color:var(--muted); margin-bottom:14px; }
   .legend { display:flex; flex-wrap:wrap; gap:11px; margin-bottom:10px; font-size:11.5px; color:var(--muted); }
   .legend span { display:flex; align-items:center; gap:5px; }
+  .ctrl { display:flex; flex-wrap:wrap; gap:16px; align-items:center; margin-bottom:12px;
+          font-size:12px; color:var(--muted); }
+  .ctrl label { display:flex; align-items:center; gap:6px; cursor:pointer; user-select:none; }
+  .ctrl input[type=checkbox] { width:15px; height:15px; accent-color:var(--fg); cursor:pointer; }
+  .ctrl .sw { width:10px; height:10px; display:inline-block; flex:none; }
   .wrap { position:relative; width:100%; max-width:900px; height:450px; }
+  .sum { font-size:12px; color:var(--muted); margin-top:12px; max-width:900px; line-height:1.7; }
+  .sum b { color:var(--fg); font-weight:600; }
 </style>
 </head>
 <body>
@@ -25,59 +32,124 @@
   <span><i style="width:10px;height:10px;border-radius:2px;background:#eb6834"></i>Anthropic</span>
   <span><i style="width:9px;height:9px;background:#1baf7a;transform:rotate(45deg)"></i>Z AI (GLM)</span>
   <span><i style="width:16px;height:0;border-top:2px dashed #5b6470"></i>Qwen local (ref)</span>
-  <span><i style="width:14px;height:14px;border-radius:50%;border:2px solid currentColor"></i>Final pick</span>
+  <span><i style="width:14px;height:14px;border-radius:50%;border:2px solid currentColor"></i>Picked</span>
+</div>
+<div class="ctrl">
+  <label><input type="checkbox" id="c-openai" checked><i class="sw" style="background:#2a78d6"></i>OpenAI</label>
+  <label><input type="checkbox" id="c-anthropic" checked><i class="sw" style="background:#eb6834"></i>Anthropic</label>
+  <label><input type="checkbox" id="c-zai" checked><i class="sw" style="background:#1baf7a"></i>Z AI (GLM)</label>
+  <label><input type="checkbox" id="c-fable"><i class="sw" style="background:#eb6834;opacity:.45"></i>Fable credits</label>
 </div>
 <div class="wrap"><canvas id="cv"></canvas></div>
+<div class="sum" id="sum"></div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <script>
 const FG = getComputedStyle(document.documentElement).getPropertyValue('--fg').trim() || '#1a1915';
-const PICK=[[0.18,37,'Bulk'],[0.82,46,'Workhorse'],[2.31,52,'Top']];
-const isP=(x,y)=>PICK.some(p=>p[0]===x&&p[1]===y);
-const OA='#2a78d6',AN='#eb6834',ZA='#1baf7a',SLT='#5b6470';
-const F=[
- ['Astra',OA,'circle',[[0.82,46,'low'],[1.54,50,'medium'],[1.73,51,'high'],[2.31,52,'xhigh'],[3.26,53,'max']],[1.54,50,'GPT-6 Astra',-6,-13]],
- ['Sol',OA,'circle',[[0.26,33,'low'],[0.50,39,'medium'],[0.81,42,'high'],[1.18,44,'xhigh'],[1.99,47,'max']],[0.26,33,'Sol',0,17]],
- ['Terra',OA,'circle',[[0.14,27,'low'],[0.18,30,'medium'],[0.34,34,'high'],[0.63,38,'xhigh'],[1.40,42,'max']],[0.14,27,'Terra',0,17]],
- ['Luna',OA,'circle',[[0.01,21,'low'],[0.02,25,'medium'],[0.04,32,'high'],[0.09,35,'xhigh'],[0.18,37,'max']],[0.01,21,'Luna',4,17]],
- ['Fable 5.1 (excl.)',AN,'rect',[[2.37,47,'low'],[2.98,49,'medium'],[3.91,51,'high'],[5.98,53,'xhigh'],[7.63,53,'max']],[5.98,53,'Fable 5.1 (excl.)',0,-13]],
- ['Opus 5',AN,'rect',[[1.10,39,'low'],[2.19,45,'medium'],[3.61,48,'high'],[4.88,50,'xhigh'],[5.86,51,'max']],[3.61,48,'Opus 5',0,15]],
- ['Sonnet 5',AN,'rect',[[0.51,24,'low'],[1.00,28,'medium'],[1.79,32,'high'],[2.87,34,'xhigh'],[5.09,38,'max']],[0.51,24,'Sonnet 5',0,17]],
- ['Haiku 4.5',AN,'rect',[[0.21,17,'']],[0.21,17,'Haiku 4.5',0,-12]],
- ['GLM',ZA,'rectRot',[[0.25,42,'5.3-Flash'],[2.01,45,'5.3 max']],[0.25,42,'GLM-5.3-Flash',0,-13]]
-];
+// DATA synced with docs/model-data.md v4.3.2 @ 2026-09-21.
+// Selection rules and constants (CAP, BULKMAX, BASE, RAD): docs/decisions.md "구독 피커 규칙".
+const BASE=34, RAD=2, CAP=0.61, BULKMAX=0.50;
+const DATA={
+ openai:{series:[
+  {n:'Astra',lab:'Astra',pts:[[0.82,46,'low'],[1.54,50,'medium'],[1.73,51,'high'],[2.31,52,'xhigh'],[3.26,53,'max']],anchor:[1.54,50,'GPT-6 Astra',-6,-13]},
+  {n:'Sol',lab:'Sol',pts:[[0.26,33,'low'],[0.50,39,'medium'],[0.81,42,'high'],[1.18,44,'xhigh'],[1.99,47,'max']],anchor:[0.26,33,'Sol',0,17]},
+  {n:'Terra',lab:'Terra',pts:[[0.14,27,'low'],[0.18,30,'medium'],[0.34,34,'high'],[0.63,38,'xhigh'],[1.40,42,'max']],anchor:[0.14,27,'Terra',0,17]},
+  {n:'Luna',lab:'Luna',pts:[[0.01,21,'low'],[0.02,25,'medium'],[0.04,32,'high'],[0.09,35,'xhigh'],[0.18,37,'max']],anchor:[0.01,21,'Luna',4,17]}]},
+ anthropic:{series:[
+  {n:'Fable 5.1',excl:true,pts:[[2.37,47,'low'],[2.98,49,'medium'],[3.91,51,'high'],[5.98,53,'xhigh'],[7.63,53,'max']],anchor:[5.98,53,'Fable 5.1',0,-13]},
+  {n:'Opus 5',lab:'Opus 5',pts:[[1.10,39,'low'],[2.19,45,'medium'],[3.61,48,'high'],[4.88,50,'xhigh'],[5.86,51,'max']],anchor:[3.61,48,'Opus 5',0,15]},
+  {n:'Sonnet 5',lab:'Sonnet 5',pts:[[0.51,24,'low'],[1.00,28,'medium'],[1.79,32,'high'],[2.87,34,'xhigh'],[5.09,38,'max']],anchor:[0.51,24,'Sonnet 5',0,17]},
+  {n:'Haiku 4.5',lab:'Haiku 4.5',single:true,pts:[[0.21,17,'Haiku 4.5']],anchor:[0.21,17,'Haiku 4.5',0,-12]}]},
+ zai:{series:[
+  {n:'GLM',lab:'GLM',glm:true,pts:[[0.25,42,'5.3-Flash'],[2.01,45,'5.3 max']],anchor:[0.25,42,'GLM-5.3-Flash',0,-13]}]}
+};
+const VC={openai:'#2a78d6',anthropic:'#eb6834',zai:'#1baf7a'};
+const VST={openai:'circle',anthropic:'rect',zai:'rectRot'};
 const QL=[[34,'Qwen3.8 27B xhigh (local)'],[40,'Qwen3.8-Flash-Next (local)']];
-const ds=[];
-F.forEach(([n,c,st,pts])=>ds.push({label:n,data:pts.map(p=>({x:p[0],y:p[1],l:p[2]||''})),pointStyle:st,
- pointRadius:pts.map(p=>isP(p[0],p[1])?8:4.5),showLine:pts.length>1,tension:0,
- borderColor:c+(pts.some(p=>isP(p[0],p[1]))?'cc':'40'),borderWidth:1.5,
- pointBackgroundColor:pts.map(p=>isP(p[0],p[1])?c:c+'40'),
- pointBorderColor:pts.map(p=>isP(p[0],p[1])?c:c+'40')}));
+const SLT='#5b6470';
+const STATE={on:{openai:true,anthropic:true,zai:true,fable:false},tiers:[]};
+
+function select(){
+ const P=[];
+ for(const k of ['openai','anthropic','zai']) if(STATE.on[k])
+  DATA[k].series.forEach(s=>{ if(s.excl&&!STATE.on.fable)return;
+   s.pts.forEach(p=>P.push({x:p[0],y:p[1],l:p[2],s:s.n}));});
+ if(!P.length)return[];
+ let S=P.filter(a=>!P.some(b=>b!==a&&b.y>=a.y&&b.x<=a.x&&(b.y>a.y||b.x<a.x)));
+ S.sort((a,b)=>a.x-b.x||a.y-b.y);
+ for(let i=0;i+1<S.length;){ if(S[i+1].y-S[i].y===1)S.splice(i+1,1); else i++; }
+ for(let i=0;i+1<S.length;i++){const a=S[i],b=S[i+1]; if((b.x-a.x)/(b.y-a.y)>CAP)S.splice(i+1,1);}
+ S=S.filter(p=>p.y>BASE+RAD);
+ if(!S.length)return[];
+ const top=S[S.length-1], bulk=S[0].x<=BULKMAX?S[0]:null;
+ if(S.length===1)return[{p:S[0],role:'Workhorse'}];
+ if(bulk&&S.length>2){
+  let best=null;
+  S.slice(1,-1).forEach(p=>{const g=Math.min(p.y-bulk.y,top.y-p.y);
+   if(!best||g>best.g||(g===best.g&&p.y>best.p.y))best={p,g};});
+  return[{p:bulk,role:'Bulk'},{p:best.p,role:'Workhorse'},{p:top,role:'Top'}];
+ }
+ return[{p:bulk||S[0],role:'Workhorse'},{p:top,role:'Top'}];
+}
+function nameOf(p){ return p.s==='GLM'?'GLM-'+p.l:(p.l===p.s?p.s:p.s+' '+p.l); }
+
+function build(){
+ STATE.tiers=select();
+ const T=STATE.tiers, ds=[];
+ for(const k of ['openai','anthropic','zai']){ if(!STATE.on[k])continue;
+  DATA[k].series.forEach(s=>{
+   const excl=s.excl&&!STATE.on.fable;
+   const data=s.pts.map(p=>{const t=T.find(t=>t.p.x===p[0]&&t.p.y===p[1]);
+    return{x:p[0],y:p[1],l:p[2],pick:t?t.role:null};});
+   const anyP=data.some(d=>d.pick);
+   const name=s.excl?(excl?s.n+' (excl.)':s.n):s.lab;
+   ds.push({label:name,data,pointStyle:VST[k],
+    pointRadius:data.map(d=>d.pick?8:4.5),showLine:data.length>1,tension:0,
+    borderColor:VC[k]+(anyP?'cc':'40'),borderWidth:1.5,
+    pointBackgroundColor:data.map(d=>d.pick?VC[k]:VC[k]+'40'),
+    pointBorderColor:data.map(d=>d.pick?VC[k]:VC[k]+'40')});});}
+ chart.data.datasets=ds;
+ chart.update('none');
+ document.getElementById('sum').innerHTML = T.length
+  ? 'Picks — '+T.map(t=>t.role+': <b>'+nameOf(t.p)+'</b> · '+t.p.y+' pts · $'+t.p.x.toFixed(2)).join(' &nbsp;·&nbsp; ')
+  : 'No pickable tier — select at least one vendor.';
+}
+
 const qlines={id:'qlines',beforeDatasetsDraw(c){const x=c.ctx,sy=c.scales.y,a=c.chartArea;x.save();
  x.strokeStyle=SLT+'70';x.lineWidth=1.5;x.setLineDash([6,4]);
  QL.forEach(q=>{const py=sy.getPixelForValue(q[0]);x.beginPath();x.moveTo(a.left,py);x.lineTo(a.right,py);x.stroke();});
  x.setLineDash([]);x.restore();}};
-const lab={id:'lab',afterDatasetsDraw(c){const x=c.ctx,sx=c.scales.x,sy=c.scales.y,a=c.chartArea;x.save();
+const lab={id:'lab',afterDatasetsDraw(c){const x=c.ctx,sx=c.scales.x,sy=c.scales.y,a=c.chartArea;
+ const T=STATE.tiers, pickedXY=new Set(T.map(t=>t.p.x+','+t.p.y));
+ x.save();
  x.font='500 10px sans-serif';
- F.forEach(([n,c2,st,pts,L])=>{const px=sx.getPixelForValue(L[0]),py=sy.getPixelForValue(L[1]);
-  x.fillStyle=c2+'bb';x.textAlign=L[3]>0?'left':'center';x.fillText(L[2],px+L[3],py+L[4]);});
- PICK.forEach(p=>{const px=sx.getPixelForValue(p[0]),py=sy.getPixelForValue(p[1]);
+ for(const k of ['openai','anthropic','zai']){ if(!STATE.on[k])continue;
+  DATA[k].series.forEach(s=>{
+   const L=s.anchor, txt=s.excl&&!STATE.on.fable?s.n+' (excl.)':L[2];
+   if(pickedXY.has(L[0]+','+L[1]))return;
+   const px=sx.getPixelForValue(L[0]),py=sy.getPixelForValue(L[1]);
+   x.fillStyle=VC[k]+'bb';x.textAlign=L[3]>0?'left':'center';x.fillText(txt,px+L[3],py+L[4]);});}
+ T.forEach(t=>{const px=sx.getPixelForValue(t.p.x),py=sy.getPixelForValue(t.p.y);
   x.strokeStyle=FG;x.lineWidth=2.5;x.beginPath();x.arc(px,py,15,0,6.29);x.stroke();
-  x.textAlign='center';x.fillStyle=FG;x.font='600 11.5px sans-serif';x.fillText(p[2],px,py-26);});
+  x.textAlign='center';x.fillStyle=FG;x.font='600 11.5px sans-serif';x.fillText(t.role,px,py-26);});
  x.font='500 9.5px sans-serif';x.fillStyle=SLT;x.textAlign='center';
- {const a1=sx.getPixelForValue(0.18),b1=sx.getPixelForValue(0.82),yy=sy.getPixelForValue(42.5);
-  x.fillText('+9 pts · 4.6x',(a1+b1)/2,yy);
-  const a2=sx.getPixelForValue(0.82),b2=sx.getPixelForValue(2.31),yy2=sy.getPixelForValue(50.5);
-  x.fillText('+6 pts · 2.8x',(a2+b2)/2,yy2);}
+ for(let i=0;i+1<T.length;i++){const p1=T[i].p,p2=T[i+1].p;
+  const px=(sx.getPixelForValue(p1.x)+sx.getPixelForValue(p2.x))/2,
+        py=(sy.getPixelForValue(p1.y)+sy.getPixelForValue(p2.y))/2;
+  x.fillText('+'+(p2.y-p1.y)+' pts · '+(p2.x/p1.x).toFixed(1)+'x',px,py);}
  x.font='600 9.5px sans-serif';x.fillStyle=SLT;x.textAlign='left';
  QL.forEach(q=>{const py=sy.getPixelForValue(q[0]);x.fillText(q[1],a.left+4,py-6);});
  x.restore();}};
-new Chart(document.getElementById('cv'),{type:'scatter',data:{datasets:ds},
+
+const chart=new Chart(document.getElementById('cv'),{type:'scatter',data:{datasets:[]},
  options:{responsive:true,maintainAspectRatio:false,layout:{padding:{left:30,right:40,top:30,bottom:8}},
   plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>c.dataset.label+(c.raw.l?' '+c.raw.l:'')+' · '+c.parsed.y+' pts · $'+c.parsed.x.toFixed(2)}}},
   scales:{x:{type:'logarithmic',min:0.008,max:14,title:{display:true,text:'Cost per task (USD, log scale)'},
     ticks:{callback:v=>[0.01,0.02,0.05,0.1,0.2,0.5,1,2,5,10].includes(v)?'$'+v:''}},
    y:{min:14,max:58,title:{display:true,text:'Intelligence Index v4.3.2'}}}},plugins:[qlines,lab]});
+['openai','anthropic','zai','fable'].forEach(k=>
+ document.getElementById('c-'+k).addEventListener('change',e=>{STATE.on[k]=e.target.checked;build();}));
+build();
 </script>
 </body>
 </html>
