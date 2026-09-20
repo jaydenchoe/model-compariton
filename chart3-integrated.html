@@ -99,7 +99,12 @@ function select(){
    :[{p:anchor,role:'Workhorse'},{p:top,role:'Top'}];
  }
  if(loc.length&&tiers[0].role==='Bulk')tiers.shift(); // local covers the bulk role
- return loc.concat(tiers);
+ const out=loc.concat(tiers);
+ for(let i=0;i+1<out.length;i++){ // squeezed pair: close in score AND cost → drop lower tier
+  const a=out[i],b=out[i+1];
+  if(a.role!=='Local'&&b.p.y-a.p.y<MINGAP&&b.p.x/a.p.x<2.5){out.splice(i,1);i=Math.max(-1,i-2);}
+ }
+ return out;
 }
 function nameOf(p){ return p.s==='GLM'?'GLM-'+p.l:(p.l?p.s+' '+p.l:p.s); }
 
