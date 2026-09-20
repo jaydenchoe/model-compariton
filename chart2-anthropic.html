@@ -15,7 +15,6 @@
   .legend { display:flex; flex-wrap:wrap; gap:11px; margin-bottom:10px; font-size:11.5px; color:var(--muted); }
   .legend span { display:flex; align-items:center; gap:5px; }
   .wrap { position:relative; width:100%; max-width:900px; height:440px; }
-  .note { font-size:11.5px; color:var(--muted); margin-top:12px; max-width:900px; line-height:1.6; }
 </style>
 </head>
 <body>
@@ -31,9 +30,6 @@
   <span><i style="width:14px;height:14px;border-radius:50%;border:2px solid currentColor"></i>Picked</span>
 </div>
 <div class="wrap"><canvas id="cv"></canvas></div>
-<div class="note">Picked: Opus 5 low 40 / $1.10 (Workhorse) · Opus 5 high 48 / $3.61 (Top).
-Anthropic alone supports only two tiers — there is no low-cost bulk tier in the lineup.
-Fable 5.1 is excluded from selection (separate credit purchase required) but shown for reference.</div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <script>
@@ -57,7 +53,7 @@ A.forEach(([n,c,st,r,m,op])=>{const al=op<1?'55':'cc';
  ds.push({label:n,data:m.map(p=>({x:p[0],y:p[1],l:p[2]})),pointStyle:st,
   pointRadius:m.map(p=>isP(p[0],p[1])?r+1:r),showLine:m.length>1,tension:0,borderColor:c+al,borderWidth:1.5,
   pointBackgroundColor:c+(op<1?'55':'ff'),pointBorderColor:c+(op<1?'55':'ff')});});
-REF.forEach(([n,c,pts])=>ds.push({label:n,data:pts.map(p=>({x:p[0],y:p[1],l:''})),pointStyle:'circle',
+REF.forEach(([n,c,pts,pl])=>ds.push({label:n,data:pts.map((p,i)=>({x:p[0],y:p[1],l:pl?pl[i][0].replace('GLM-',''):''})),pointStyle:'circle',
  pointRadius:3.5,showLine:pts.length>1,tension:0,borderColor:fade(c),borderWidth:1.5,
  pointBackgroundColor:fade(c),pointBorderColor:fade(c)}));
 const qlines={id:'qlines',beforeDatasetsDraw(c){const x=c.ctx,sy=c.scales.y,a=c.chartArea;x.save();

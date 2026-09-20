@@ -15,7 +15,6 @@
   .legend { display:flex; flex-wrap:wrap; gap:11px; margin-bottom:10px; font-size:11.5px; color:var(--muted); }
   .legend span { display:flex; align-items:center; gap:5px; }
   .wrap { position:relative; width:100%; max-width:900px; height:450px; }
-  .note { font-size:11.5px; color:var(--muted); margin-top:12px; max-width:900px; line-height:1.6; }
 </style>
 </head>
 <body>
@@ -29,9 +28,6 @@
   <span><i style="width:14px;height:14px;border-radius:50%;border:2px solid currentColor"></i>Final pick</span>
 </div>
 <div class="wrap"><canvas id="cv"></canvas></div>
-<div class="note">Final: Luna max 38 / $0.18 (Bulk) · Astra low 46 / $0.82 (Workhorse) · Astra xhigh 53 / $2.31 (Top).
-Spacing +8 pts / 4.6x and +7 pts / 2.8x. The three tiers differ in traffic share, not only in price.
-Fable 5.1 is excluded from selection (separate credit purchase required) but shown for reference.</div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <script>
@@ -40,19 +36,19 @@ const PICK=[[0.18,38,'Bulk'],[0.82,46,'Workhorse'],[2.31,53,'Top']];
 const isP=(x,y)=>PICK.some(p=>p[0]===x&&p[1]===y);
 const OA='#2a78d6',AN='#eb6834',ZA='#1baf7a',SLT='#5b6470';
 const F=[
- ['Astra',OA,'circle',[[0.82,46],[1.54,50],[1.72,51],[2.31,53],[3.26,53]],[1.54,50,'GPT-6 Astra',-6,-13]],
- ['Sol',OA,'circle',[[0.26,34],[0.50,39],[0.81,42],[1.18,44],[1.99,47]],[0.26,34,'Sol',0,17]],
- ['Terra',OA,'circle',[[0.14,28],[0.18,30],[0.34,34],[0.63,38],[1.40,42]],[0.14,28,'Terra',0,17]],
- ['Luna',OA,'circle',[[0.01,22],[0.02,25],[0.04,32],[0.09,35],[0.18,38]],[0.01,22,'Luna',4,17]],
- ['Fable 5.1 (excl.)',AN,'rect',[[2.37,47],[2.98,49],[3.91,51],[5.98,53],[7.63,53]],[5.98,53,'Fable 5.1 (excl.)',0,-13]],
- ['Opus 5',AN,'rect',[[1.10,40],[2.19,45],[3.61,48],[4.88,50],[5.86,51]],[3.61,48,'Opus 5',0,15]],
- ['Sonnet 5',AN,'rect',[[0.51,25],[1.00,28],[1.79,32],[2.87,35],[5.09,38]],[0.51,25,'Sonnet 5',0,17]],
- ['Haiku 4.5',AN,'rect',[[0.21,18]],[0.21,18,'Haiku 4.5',0,-12]],
- ['GLM',ZA,'rectRot',[[0.25,42],[2.01,45]],[0.25,42,'GLM-5.3-Flash',0,-13]]
+ ['Astra',OA,'circle',[[0.82,46,'low'],[1.54,50,'medium'],[1.72,51,'high'],[2.31,53,'xhigh'],[3.26,53,'max']],[1.54,50,'GPT-6 Astra',-6,-13]],
+ ['Sol',OA,'circle',[[0.26,34,'low'],[0.50,39,'medium'],[0.81,42,'high'],[1.18,44,'xhigh'],[1.99,47,'max']],[0.26,34,'Sol',0,17]],
+ ['Terra',OA,'circle',[[0.14,28,'low'],[0.18,30,'medium'],[0.34,34,'high'],[0.63,38,'xhigh'],[1.40,42,'max']],[0.14,28,'Terra',0,17]],
+ ['Luna',OA,'circle',[[0.01,22,'low'],[0.02,25,'medium'],[0.04,32,'high'],[0.09,35,'xhigh'],[0.18,38,'max']],[0.01,22,'Luna',4,17]],
+ ['Fable 5.1 (excl.)',AN,'rect',[[2.37,47,'low'],[2.98,49,'medium'],[3.91,51,'high'],[5.98,53,'xhigh'],[7.63,53,'max']],[5.98,53,'Fable 5.1 (excl.)',0,-13]],
+ ['Opus 5',AN,'rect',[[1.10,40,'low'],[2.19,45,'medium'],[3.61,48,'high'],[4.88,50,'xhigh'],[5.86,51,'max']],[3.61,48,'Opus 5',0,15]],
+ ['Sonnet 5',AN,'rect',[[0.51,25,'low'],[1.00,28,'medium'],[1.79,32,'high'],[2.87,35,'xhigh'],[5.09,38,'max']],[0.51,25,'Sonnet 5',0,17]],
+ ['Haiku 4.5',AN,'rect',[[0.21,18,'']],[0.21,18,'Haiku 4.5',0,-12]],
+ ['GLM',ZA,'rectRot',[[0.25,42,'5.3-Flash'],[2.01,45,'5.3 max']],[0.25,42,'GLM-5.3-Flash',0,-13]]
 ];
 const QL=[[34,'Qwen3.8 27B xhigh (local)'],[40,'Qwen3.8-Flash-Next (local)']];
 const ds=[];
-F.forEach(([n,c,st,pts])=>ds.push({label:n,data:pts.map(p=>({x:p[0],y:p[1]})),pointStyle:st,
+F.forEach(([n,c,st,pts])=>ds.push({label:n,data:pts.map(p=>({x:p[0],y:p[1],l:p[2]||''})),pointStyle:st,
  pointRadius:pts.map(p=>isP(p[0],p[1])?8:4.5),showLine:pts.length>1,tension:0,
  borderColor:c+(pts.some(p=>isP(p[0],p[1]))?'cc':'40'),borderWidth:1.5,
  pointBackgroundColor:pts.map(p=>isP(p[0],p[1])?c:c+'40'),
@@ -78,7 +74,7 @@ const lab={id:'lab',afterDatasetsDraw(c){const x=c.ctx,sx=c.scales.x,sy=c.scales
  x.restore();}};
 new Chart(document.getElementById('cv'),{type:'scatter',data:{datasets:ds},
  options:{responsive:true,maintainAspectRatio:false,layout:{padding:{left:30,right:40,top:30,bottom:8}},
-  plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>c.dataset.label+' · '+c.parsed.y+' pts · $'+c.parsed.x.toFixed(2)}}},
+  plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>c.dataset.label+(c.raw.l?' '+c.raw.l:'')+' · '+c.parsed.y+' pts · $'+c.parsed.x.toFixed(2)}}},
   scales:{x:{type:'logarithmic',min:0.008,max:14,title:{display:true,text:'Cost per task (USD, log scale)'},
     ticks:{callback:v=>[0.01,0.02,0.05,0.1,0.2,0.5,1,2,5,10].includes(v)?'$'+v:''}},
    y:{min:14,max:58,title:{display:true,text:'Intelligence Index v4.3'}}}},plugins:[qlines,lab]});
