@@ -18,6 +18,8 @@
           font-size:12px; color:var(--muted); }
   .ctrl label { display:flex; align-items:center; gap:6px; cursor:pointer; user-select:none; }
   .ctrl input[type=checkbox] { width:15px; height:15px; accent-color:var(--fg); cursor:pointer; }
+  .ctrl select { background:var(--bg); color:var(--fg); border:1px solid var(--muted);
+                 border-radius:5px; font:inherit; font-size:12px; padding:2px 6px; cursor:pointer; }
   .ctrl .sw { width:10px; height:10px; display:inline-block; flex:none; }
   .wrap { position:relative; width:100%; max-width:900px; height:450px; }
   .sum { font-size:12px; color:var(--muted); margin-top:12px; max-width:900px; line-height:1.7; }
@@ -39,6 +41,13 @@
   <label><input type="checkbox" id="c-anthropic" checked><i class="sw" style="background:#eb6834"></i>Anthropic</label>
   <label><input type="checkbox" id="c-zai" checked><i class="sw" style="background:#1baf7a"></i>Z AI (GLM)</label>
   <label><input type="checkbox" id="c-fable"><i class="sw" style="background:#eb6834;opacity:.45"></i>Fable credits</label>
+  <label>Qwen local:
+   <select id="c-local">
+    <option value="none">None</option>
+    <option value="27" selected>27B (34)</option>
+    <option value="fn">Flash-Next (40)</option>
+   </select>
+  </label>
 </div>
 <div class="wrap"><canvas id="cv"></canvas></div>
 <div class="sum" id="sum"></div>
@@ -48,7 +57,7 @@
 const FG = getComputedStyle(document.documentElement).getPropertyValue('--fg').trim() || '#1a1915';
 // DATA synced with docs/model-data.md v4.3.2 @ 2026-09-21.
 // Selection rules and constants (CAP, BULKMAX, BASE, RAD): docs/decisions.md "구독 피커 규칙".
-const BASE=34, RAD=2, CAP=0.61, BULKMAX=0.50;
+const RAD=2, CAP=0.61, BULKMAX=0.50;
 const DATA={
  openai:{series:[
   {n:'Astra',lab:'Astra',pts:[[0.82,46,'low'],[1.54,50,'medium'],[1.73,51,'high'],[2.31,52,'xhigh'],[3.26,53,'max']],anchor:[1.54,50,'GPT-6 Astra',-6,-13]},
@@ -67,7 +76,7 @@ const VC={openai:'#2a78d6',anthropic:'#eb6834',zai:'#1baf7a'};
 const VST={openai:'circle',anthropic:'rect',zai:'rectRot'};
 const QL=[[34,'Qwen3.8 27B xhigh (local)'],[40,'Qwen3.8-Flash-Next (local)']];
 const SLT='#5b6470';
-const STATE={on:{openai:true,anthropic:true,zai:true,fable:false},tiers:[]};
+const STATE={on:{openai:true,anthropic:true,zai:true,fable:false},local:34,tiers:[]};
 
 function select(){
  const P=[];
@@ -79,7 +88,7 @@ function select(){
  S.sort((a,b)=>a.x-b.x||a.y-b.y);
  for(let i=0;i+1<S.length;){ if(S[i+1].y-S[i].y===1)S.splice(i+1,1); else i++; }
  for(let i=0;i+1<S.length;i++){const a=S[i],b=S[i+1]; if((b.x-a.x)/(b.y-a.y)>CAP)S.splice(i+1,1);}
- S=S.filter(p=>p.y>BASE+RAD);
+ if(STATE.local!=null)S=S.filter(p=>p.y>STATE.local+RAD);
  if(!S.length)return[];
  const top=S[S.length-1], bulk=S[0].x<=BULKMAX?S[0]:null;
  if(S.length===1)return[{p:S[0],role:'Workhorse'}];
@@ -149,6 +158,8 @@ const chart=new Chart(document.getElementById('cv'),{type:'scatter',data:{datase
    y:{min:14,max:58,title:{display:true,text:'Intelligence Index v4.3.2'}}}},plugins:[qlines,lab]});
 ['openai','anthropic','zai','fable'].forEach(k=>
  document.getElementById('c-'+k).addEventListener('change',e=>{STATE.on[k]=e.target.checked;build();}));
+document.getElementById('c-local').addEventListener('change',e=>{
+ STATE.local=e.target.value==='none'?null:(e.target.value==='27'?34:40);build();});
 build();
 </script>
 </body>
