@@ -95,10 +95,10 @@ function select(){
   S.slice(1,-1).forEach(p=>{const g=Math.min(p.y-anchor.y,top.y-p.y);
    if(!best||g>best.g||(g===best.g&&p.y>best.p.y))best={p,g};});
   tiers=(canBulk&&best&&best.g>=MINGAP)
-   ?[{p:anchor,role:'Bulk'},{p:best.p,role:'Workhorse'},{p:top,role:'Top'}]
+   ?[{p:anchor,role:'Base'},{p:best.p,role:'Workhorse'},{p:top,role:'Top'}]
    :[{p:anchor,role:'Workhorse'},{p:top,role:'Top'}];
  }
- if(loc.length&&tiers[0].role==='Bulk')tiers.shift(); // local covers the bulk role
+ if(loc.length&&tiers[0].role==='Base')tiers.shift(); // local covers the base role
  const out=loc.concat(tiers);
  for(let i=0;i+1<out.length;i++){ // squeezed pair: close in score AND cost → drop lower tier
   const a=out[i],b=out[i+1];

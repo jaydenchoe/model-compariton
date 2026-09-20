@@ -35,7 +35,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <script>
 const FG = getComputedStyle(document.documentElement).getPropertyValue('--fg').trim() || '#1a1915';
-const PICK=[[0.18,37,'Bulk'],[0.82,46,'Workhorse'],[2.31,52,'Top']];
+const PICK=[[0.18,37,'Base'],[0.82,46,'Workhorse'],[2.31,52,'Top']];
 const isP=(x,y)=>PICK.some(p=>p[0]===x&&p[1]===y);
 const D=[
  ['Astra','#2a78d6','circle',7,[[0.82,46,'low',0,16],[1.54,50,'medium',-8,-12],[1.73,51,'high',12,-4],[2.31,52,'xhigh',2,-12],[3.26,53,'max',12,0]]],
