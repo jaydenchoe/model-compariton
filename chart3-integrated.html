@@ -120,9 +120,11 @@ function build(){
   : 'No pickable tier — select at least one vendor.';
 }
 
-const qlines={id:'qlines',beforeDatasetsDraw(c){const x=c.ctx,sy=c.scales.y,a=c.chartArea;x.save();
- x.strokeStyle=SLT+'70';x.lineWidth=1.5;x.setLineDash([6,4]);
- QL.forEach(q=>{const py=sy.getPixelForValue(q[0]);x.beginPath();x.moveTo(a.left,py);x.lineTo(a.right,py);x.stroke();});
+const qlines={id:'qlines',beforeDatasetsDraw(c){const x=c.ctx,sy=c.scales.y,a=c.chartArea;
+ const L=STATE.tiers.find(t=>t.role==='Local');x.save();
+ QL.forEach(q=>{const py=sy.getPixelForValue(q[0]),on=L&&L.p.y===q[0];
+  x.strokeStyle=on?FG:SLT+'70';x.lineWidth=on?2:1.5;x.setLineDash(on?[]:[6,4]);
+  x.beginPath();x.moveTo(a.left,py);x.lineTo(a.right,py);x.stroke();});
  x.setLineDash([]);x.restore();}};
 const lab={id:'lab',afterDatasetsDraw(c){const x=c.ctx,sx=c.scales.x,sy=c.scales.y,a=c.chartArea;
  const T=STATE.tiers, pickedXY=new Set(T.map(t=>t.p.x+','+t.p.y));
@@ -142,8 +144,9 @@ const lab={id:'lab',afterDatasetsDraw(c){const x=c.ctx,sx=c.scales.x,sy=c.scales
   const px=(sx.getPixelForValue(p1.x)+sx.getPixelForValue(p2.x))/2,
         py=(sy.getPixelForValue(p1.y)+sy.getPixelForValue(p2.y))/2;
   x.fillText('+'+(p2.y-p1.y)+' pts · '+(p2.x/p1.x).toFixed(1)+'x',px,py);}
- x.font='600 9.5px sans-serif';x.fillStyle=SLT;x.textAlign='left';
- QL.forEach(q=>{const py=sy.getPixelForValue(q[0]);x.fillText(q[1],a.left+4,py-6);});
+ QL.forEach(q=>{const py=sy.getPixelForValue(q[0]),on=T.find(t=>t.role==='Local'&&t.p.y===q[0]);
+  x.font=on?'700 9.5px sans-serif':'600 9.5px sans-serif';x.fillStyle=on?FG:SLT;x.textAlign='left';
+  x.fillText(q[1],a.left+(on?20:4),py-(on?7:6));});
  x.restore();}};
 
 const chart=new Chart(document.getElementById('cv'),{type:'scatter',data:{datasets:[]},
