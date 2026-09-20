@@ -18,8 +18,7 @@
           font-size:12px; color:var(--muted); }
   .ctrl label { display:flex; align-items:center; gap:6px; cursor:pointer; user-select:none; }
   .ctrl input[type=checkbox] { width:15px; height:15px; accent-color:var(--fg); cursor:pointer; }
-  .ctrl select { background:var(--bg); color:var(--fg); border:1px solid var(--muted);
-                 border-radius:5px; font:inherit; font-size:12px; padding:2px 6px; cursor:pointer; }
+  .ctrl .dash { width:16px; height:0; border-top:2px dashed var(--muted); display:inline-block; flex:none; }
   .ctrl .sw { width:10px; height:10px; display:inline-block; flex:none; }
   .wrap { position:relative; width:100%; max-width:900px; height:450px; }
   .sum { font-size:12px; color:var(--muted); margin-top:12px; max-width:900px; line-height:1.7; }
@@ -41,13 +40,8 @@
   <label><input type="checkbox" id="c-anthropic" checked><i class="sw" style="background:#eb6834"></i>Anthropic</label>
   <label><input type="checkbox" id="c-zai" checked><i class="sw" style="background:#1baf7a"></i>Z AI (GLM)</label>
   <label><input type="checkbox" id="c-fable"><i class="sw" style="background:#eb6834;opacity:.45"></i>Fable credits</label>
-  <label>Qwen local:
-   <select id="c-local">
-    <option value="none">None</option>
-    <option value="27" selected>27B (34)</option>
-    <option value="fn">Flash-Next (40)</option>
-   </select>
-  </label>
+  <label><input type="checkbox" id="c-q27" checked><i class="dash"></i>Qwen3.8 27B</label>
+  <label><input type="checkbox" id="c-fn"><i class="dash"></i>Flash-Next</label>
 </div>
 <div class="wrap"><canvas id="cv"></canvas></div>
 <div class="sum" id="sum"></div>
@@ -158,8 +152,10 @@ const chart=new Chart(document.getElementById('cv'),{type:'scatter',data:{datase
    y:{min:14,max:58,title:{display:true,text:'Intelligence Index v4.3.2'}}}},plugins:[qlines,lab]});
 ['openai','anthropic','zai','fable'].forEach(k=>
  document.getElementById('c-'+k).addEventListener('change',e=>{STATE.on[k]=e.target.checked;build();}));
-document.getElementById('c-local').addEventListener('change',e=>{
- STATE.local=e.target.value==='none'?null:(e.target.value==='27'?34:40);build();});
+const q27=document.getElementById('c-q27'),qfn=document.getElementById('c-fn');
+function updLocal(){const v=[];if(q27.checked)v.push(34);if(qfn.checked)v.push(40);
+ STATE.local=v.length?Math.max(...v):null;build();}
+q27.addEventListener('change',updLocal);qfn.addEventListener('change',updLocal);
 build();
 </script>
 </body>
