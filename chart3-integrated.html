@@ -51,7 +51,7 @@
 const FG = getComputedStyle(document.documentElement).getPropertyValue('--fg').trim() || '#1a1915';
 // DATA synced with docs/model-data.md v4.3.2 @ 2026-09-21.
 // Selection rules and constants (CAP, BULKMAX, BASE, RAD): docs/decisions.md "구독 피커 규칙".
-const RAD=2, CAP=0.61, BULKMAX=0.50, MINGAP=4;
+const RAD=2, BULKMAX=0.60, MINGAP=4;
 const DATA={
  openai:{series:[
   {n:'Astra',lab:'Astra',pts:[[0.82,46,'low'],[1.54,50,'medium'],[1.73,51,'high'],[2.31,52,'xhigh'],[3.26,53,'max']],anchor:[1.54,50,'GPT-6 Astra',-6,-13]},
@@ -83,7 +83,6 @@ function select(){
  let S=P.filter(a=>!P.some(b=>b!==a&&b.y>=a.y&&b.x<=a.x&&(b.y>a.y||b.x<a.x)));
  S.sort((a,b)=>a.x-b.x||a.y-b.y);
  for(let i=0;i+1<S.length;){ if(S[i+1].y-S[i].y===1)S.splice(i+1,1); else i++; }
- for(let i=0;i+1<S.length;){ if((S[i+1].x-S[i].x)/(S[i+1].y-S[i].y)>CAP)S.splice(i+1,1); else i++; }
  // competence floor 34 (마지노선, docs/decisions.md) — checked local raises it
  S=S.filter(p=>p.y>(STATE.local==null?34:STATE.local)+RAD);
  if(!S.length)return loc;
